@@ -10,6 +10,10 @@ from rango.forms import CategoryForm
 
 from django.shortcuts import redirect
 
+from django.urls import reverse
+
+from rango.forms import PageForm
+
 
 
 def index(request):
@@ -58,3 +62,26 @@ def add_category(request):
             print(form.errors)
 
     return render(request, 'rango/add_category.html', {'form': form})
+
+
+
+def add_page(request, category_name_slug):
+    """
+    Adds a new page to a specified category. Redirects to the app's home page if the category doesn't exist.
+    On a POST request with valid form data, saves a new page under the category and redirects to the category's page.
+    """
+    try:
+        category = Category.objects.get(slug=category_name_slug)
+    except Category.DoesNotExist:
+        return redirect('/rango/')
+
+    form = PageForm(request.POST or None)
+
+    if request.method == 'POST' and form.is_valid():
+        page = form.save(commit=False)
+        page.category = category  # Assign the page to the selected category
+        page.views = 0  # Initialize page views
+        page.save()
+        return redirect(reverse('rango:show_category', kwargs={'category_name_slug': category_name_slug}))
+
+    return render(request, 'rango/add_page.html', {'form': form, 'category': category})
